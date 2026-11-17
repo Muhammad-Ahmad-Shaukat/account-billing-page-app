@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "types": ["@shopify/ui-extensions/customer-account"],
+    "target": "ES2022",
+    "noEmit": true
+  },
+  "include": ["src/**/*", "shopify.d.ts"]
+}

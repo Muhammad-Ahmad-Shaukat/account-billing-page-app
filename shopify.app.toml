@@ -2,7 +2,7 @@
 
 client_id = "d589a4edb908eb643e54eaa9c8a8b210"
 name = "account-invoice"
-application_url = "https://favor-minutes-means-admit.trycloudflare.com"
+application_url = "https://account-billing-page-app.onrender.com"
 embedded = true
 
 [access_scopes]
@@ -13,13 +13,10 @@ scopes = "write_products,write_app_proxy"
 api_version = "2026-10"
 
 [auth]
-redirect_urls = [
-  "https://favor-minutes-means-admit.trycloudflare.com/api/auth",
-  "https://favor-minutes-means-admit.trycloudflare.com/api/auth/callback"
-]
+redirect_urls = ["https://account-billing-page-app.onrender.com/api/auth","https://account-billing-page-app.onrender.com/api/auth/callback"]
 
 [app_proxy]
-url = "https://favor-minutes-means-admit.trycloudflare.com/api/proxy"
+url = "https://account-billing-page-app.onrender.com/api/proxy"
 subpath = "account-billing"
 prefix = "apps"
 

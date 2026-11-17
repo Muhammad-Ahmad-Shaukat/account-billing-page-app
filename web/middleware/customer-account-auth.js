@@ -4,10 +4,11 @@ import shopify from "../shopify.js";
 export async function customerAccountAuth(req, res, next) {
   try {
     const token = /^Bearer (\S+)$/i.exec(req.get("Authorization") || "")?.[1];
-    if (!token) return res.status(401).json({ error: "Sign in required" });
+    if (!token) return res.status(401).json({ error: "Sign in required", code: "invalid_customer_session" });
     const claims = await shopify.api.session.decodeSessionToken(token);
     if (!/^gid:\/\/shopify\/Customer\/\d+$/.test(claims.sub || "")) {
-      return res.status(401).json({ error: "Customer identity unavailable" });
+      console.warn("[customer-account-auth] verified token has no customer identity; check protected customer data access");
+      return res.status(401).json({ error: "Customer identity unavailable", code: "customer_identity_missing" });
     }
     const dest = String(claims.dest || "").replace(/^https:\/\//, "").replace(/\/$/, "");
     if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i.test(dest)) {
@@ -19,7 +20,9 @@ export async function customerAccountAuth(req, res, next) {
     req.proxyShop = dest.toLowerCase();
     req.loggedInCustomerId = claims.sub.split("/").pop();
     return next();
-  } catch {
-    return res.status(401).json({ error: "Invalid or expired customer session" });
+  } catch (error) {
+    // Shopify's error message may embed the JWT; log only its class, never its message.
+    console.warn("[customer-account-auth] token verification rejected", { error: error.name });
+    return res.status(401).json({ error: "Invalid or expired customer session", code: "invalid_customer_session" });
   }
 }

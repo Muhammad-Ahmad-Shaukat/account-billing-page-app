@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import {connectionCandidates, fetchInvoices} from '../../extensions/customer-invoices/src/invoice-api.js';
 const token = `test.${Buffer.from(JSON.stringify({dest:'https://test-shop.myshopify.com'})).toString('base64url')}.test`;
 const candidates = connectionCandidates(token);
-assert.equal(candidates[0], 'https://test-shop.myshopify.com/apps/account-billing/account');
+assert.ok(candidates.includes('https://test-shop.myshopify.com/apps/account-billing/account'));
+assert.ok(candidates[0].endsWith('/api/customer-account'));
 assert.throws(() => connectionCandidates(`test.${Buffer.from(JSON.stringify({dest:'evil.example'})).toString('base64url')}.test`));
 const original = globalThis.fetch;
 const calls = [];
@@ -26,5 +27,12 @@ try {
     assert.equal((await fetchInvoices('',token)).apiBase,candidates[1]);
     assert.equal(calls.length,2);
   }
-  console.log('Invoice connection passed: stable proxy address, token header, destination checks, and password-page fallback.');
+  calls.length=0;
+  globalThis.fetch=async url=>{
+    calls.push(url);
+    return new Response(JSON.stringify({error:'Customer identity unavailable'}),{status:401,headers:{'content-type':'application/json'}});
+  };
+  await assert.rejects(fetchInvoices('',token),error=>error.code==='customer_identity_missing');
+  assert.equal(calls.length,1,'Authentication failures must not retry through the storefront proxy');
+  console.log('Invoice connection passed: direct-first routing, stable proxy fallback, destination checks, and actionable identity errors without redundant retries.');
 } finally { globalThis.fetch = original; }
