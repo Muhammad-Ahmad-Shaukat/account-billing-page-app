@@ -1,0 +1,15 @@
+api_version = "2026-10"
+
+[[extensions]]
+name = "Invoices"
+handle = "customer-invoices"
+uid = "f1e8ad0c-2a60-468d-20a8-85f16f32d58914a39298"
+type = "ui_extension"
+
+[[extensions.targeting]]
+module = "./src/Invoices.jsx"
+target = "customer-account.page.render"
+
+[extensions.capabilities]
+network_access = true
+

@@ -5,11 +5,15 @@
   "license": "UNLICENSED",
   "scripts": {
     "shopify": "shopify",
-    "build": "shopify app build",
-    "dev": "shopify app dev",
+    "configure": "node web/scripts/configure-extension.mjs",
+    "build": "npm run configure && shopify app build",
+    "dev": "npm run configure && shopify app dev",
     "info": "shopify app info",
     "generate": "shopify app generate",
-    "deploy": "shopify app deploy"
+    "deploy": "npm run configure && shopify app deploy",
+    "db:migrate": "npm run db:migrate --workspace=shopify-app-template-node",
+    "sessions:migrate": "node web/scripts/migrate-sessions.mjs",
+    "check:setup": "node web/scripts/check-setup.mjs"
   },
   "dependencies": {},
   "author": "Muhammad Ahmad",

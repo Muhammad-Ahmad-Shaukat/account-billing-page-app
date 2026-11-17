@@ -4,7 +4,7 @@ import shopify from "../shopify.js";
  * Validate Shopify app proxy signature and require a logged-in customer.
  * Sets req.proxyShop and req.loggedInCustomerId.
  */
-export async function appProxyAuth(req, res, next) {
+export async function appProxySignature(req, res, next) {
   try {
     const query = { ...req.query };
     // Express may parse arrays; flatten to strings for HMAC
@@ -24,11 +24,6 @@ export async function appProxyAuth(req, res, next) {
       return res.status(401).json({ error: "Invalid proxy signature" });
     }
 
-    const customerId = String(query.logged_in_customer_id || "").trim();
-    if (!customerId) {
-      return res.status(401).json({ error: "Customer must be signed in" });
-    }
-
     const shop = String(query.shop || "")
       .trim()
       .toLowerCase()
@@ -40,10 +35,19 @@ export async function appProxyAuth(req, res, next) {
     }
 
     req.proxyShop = shop;
-    req.loggedInCustomerId = customerId;
+    req.signedProxyShop = shop;
     return next();
   } catch (err) {
     console.error("[app-proxy-auth]", err.message);
     return res.status(401).json({ error: "Invalid proxy signature" });
   }
+}
+
+export function appProxyAuth(req, res, next) {
+  return appProxySignature(req, res, () => {
+    const customer = String(req.query.logged_in_customer_id || "").trim();
+    if (!customer) return res.status(401).json({ error: "Customer must be signed in" });
+    req.loggedInCustomerId = customer;
+    return next();
+  });
 }

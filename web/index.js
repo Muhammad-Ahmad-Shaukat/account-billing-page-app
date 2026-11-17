@@ -13,6 +13,10 @@ import invoicesIngestRouter from "./routes/invoices-ingest.js";
 import outstandingIngestRouter from "./routes/outstanding-ingest.js";
 import customerInvoicesProxyRouter from "./routes/customer-invoices-proxy.js";
 import healthRouter from "./routes/health.js";
+import { initializeSessionStorage } from "./session-storage.js";
+import { writePublicExtensionConfig } from "./public-config.js";
+import setupRouter from "./routes/setup.js";
+import { runtimeConfig } from "./runtime-config.js";
 
 const PORT = parseInt(
   process.env.BACKEND_PORT || process.env.PORT || "3000",
@@ -49,10 +53,13 @@ app.use("/api/invoices", invoicesIngestRouter);
 app.use("/api/outstanding", outstandingIngestRouter);
 
 // App proxy (storefront /apps/account-billing/* → /api/proxy/*)
+app.use("/api/proxy/account", customerInvoicesProxyRouter);
 app.use("/api/proxy", customerInvoicesProxyRouter);
+app.use("/api/customer-account", customerInvoicesProxyRouter);
 
 // Admin-authenticated API routes
 app.use("/api/*", shopify.validateAuthenticatedSession());
+app.use("/api/setup", setupRouter);
 
 app.get("/api/products/count", async (_req, res) => {
   const client = new shopify.api.clients.Graphql({
@@ -94,15 +101,18 @@ app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
     .send(
       readFileSync(join(STATIC_PATH, "index.html"))
         .toString()
-        .replace("%VITE_SHOPIFY_API_KEY%", process.env.SHOPIFY_API_KEY || "")
+        .replace("%VITE_SHOPIFY_API_KEY%", runtimeConfig.apiKey)
     );
 });
 
 async function start() {
   try {
+    if (process.env.NODE_ENV !== "production") writePublicExtensionConfig();
     await migrate();
+    await initializeSessionStorage();
   } catch (err) {
-    console.error("[db] Migration failed — invoice APIs will error until DB is up:", err.message);
+    console.error("[db] Database/session initialization failed:", err.message);
+    process.exit(1);
   }
 
   app.listen(PORT, () => {

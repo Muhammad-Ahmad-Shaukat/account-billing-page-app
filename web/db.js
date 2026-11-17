@@ -1,3 +1,4 @@
+import "./load-env.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -7,17 +8,22 @@ const { Pool } = pg;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const DATABASE_URL =
-  process.env.DATABASE_URL ||
-  "postgresql://postgres:root@localhost:5432/invoice";
+export const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) throw new Error("Set DATABASE_URL in .env or the hosting environment.");
 
 export const pool = new Pool({
   connectionString: DATABASE_URL,
+  connectionTimeoutMillis: 10000,
 });
 
 let migrated = false;
 
 export async function ensureDatabase() {
+  if (process.env.DATABASE_AUTO_CREATE === "false" ||
+      (process.env.NODE_ENV === "production" && process.env.DATABASE_AUTO_CREATE !== "true")) {
+    await pool.query("SELECT 1");
+    return;
+  }
   // Create DB if missing by connecting to postgres maintenance DB
   const url = new URL(DATABASE_URL);
   const dbName = url.pathname.replace(/^\//, "") || "invoice";

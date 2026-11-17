@@ -1,151 +1,89 @@
-import {
-  Page,
-  Layout,
-  Card,
-  Text,
-  TextContainer,
-  Stack,
-  Badge,
-  List,
-  Divider,
-} from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
+﻿import {useEffect, useState} from "react";
+import {Page, Layout, Card, Text, TextContainer, Stack, Badge, List, Banner, Button, Spinner} from "@shopify/polaris";
+import {TitleBar, useAppBridge} from "@shopify/app-bridge-react";
 
 export default function HomePage() {
-  return (
-    <Page>
-      <TitleBar title="Account Billing" />
-      <Layout>
-        <Layout.Section>
-          <Card sectioned>
-            <Stack distribution="equalSpacing" alignment="center">
-              <TextContainer>
-                <Text as="h1" variant="headingLg">
-                  Custom Invoice Module
-                </Text>
-                <p>
-                  ERP invoices are stored by this app and shown to signed-in
-                  customers on the storefront account page. No product setup is
-                  required here.
-                </p>
-              </TextContainer>
-              <Badge status="success">Active</Badge>
-            </Stack>
-          </Card>
-        </Layout.Section>
-
-        <Layout.Section>
-          <Card title="Customer access" sectioned>
+  const bridge = useAppBridge();
+  const [status, setStatus] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  async function check() {
+    setLoading(true); setError("");
+    try {
+      const token = await bridge.idToken();
+      const response = await fetch("/api/setup/status", {headers: {Authorization: `Bearer ${token}`}});
+      if (!response.ok) throw new Error("Setup check failed. Check DATABASE_URL and restart the app.");
+      setStatus(await response.json());
+    } catch (err) { setError(err.message || "Unable to check setup."); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { check(); }, []);
+  return <Page>
+    <TitleBar title="Account invoices" />
+    <Layout>
+      <Layout.Section>
+        <Card sectioned>
+          <TextContainer>
+            <Text as="h1" variant="headingLg">Customer account invoices</Text>
+            <Text as="p">Customers can view their invoices and download PDFs in English and French. Invoice data and documents are supplied by this app.</Text>
+          </TextContainer>
+        </Card>
+      </Layout.Section>
+      <Layout.Section>
+        <Card title="Enable the Invoices page" sectioned>
+          <TextContainer>
+            <Banner status="info">Installing the app does not automatically add Invoices to your customer account menu.</Banner>
             <List type="number">
-              <List.Item>Customer signs in on the storefront</List.Item>
-              <List.Item>
-                Opens <strong>/pages/my-account</strong> → Invoices
-              </List.Item>
-              <List.Item>
-                Views and downloads invoices via the app proxy
-              </List.Item>
+              <List.Item>Use Shopify customer accounts. The extension does not appear in legacy customer accounts.</List.Item>
+              <List.Item>Release this app's customer-invoices extension with npm run deploy. For local testing, run npm run dev and use Shopify's extension preview.</List.Item>
+              <List.Item>Open Settings → Customer accounts → Customize to open the checkout and accounts editor.</List.Item>
+              <List.Item>Open Apps, find Invoices under this app, and add the page. Choose Add to menu, then save the account configuration.</List.Item>
+              <List.Item>Sign in as a customer and open Invoices. The table shows invoices ingested for that customer's Shopify ID.</List.Item>
+              <List.Item>Enable this app's protected customer data access in the developer dashboard so Shopify supplies the signed-in customer identity.</List.Item>
             </List>
-            <br />
-            <Text as="p" variant="bodySm" color="subdued">
-              Storefront proxy path:{" "}
-              <strong>/apps/account-billing/customer/invoices</strong>
-            </Text>
-          </Card>
-        </Layout.Section>
-
-        <Layout.Section oneHalf>
-          <Card title="Invoice ingest" sectioned>
-            <Text as="p" variant="bodyMd">
-              <strong>POST</strong> /api/invoices/ingest
-            </Text>
-            <Divider />
-            <br />
-            <Text as="p" variant="bodySm" color="subdued">
-              Headers: X-Invoice-Secret, X-Shopify-Shop-Domain
-            </Text>
-            <Text as="p" variant="bodySm" color="subdued">
-              Body: one invoice JSON record (Section 5 payload)
-            </Text>
-          </Card>
-        </Layout.Section>
-
-        <Layout.Section oneHalf>
-          <Card title="Outstanding balance ingest" sectioned>
-            <Text as="p" variant="bodyMd">
-              <strong>POST</strong> /api/outstanding/ingest
-            </Text>
-            <Divider />
-            <br />
-            <Text as="p" variant="bodySm" color="subdued">
-              Same auth headers as invoice ingest
-            </Text>
-            <Text as="p" variant="bodySm" color="subdued">
-              Body: shopify_customer_id + outstanding_balance (one per customer)
-            </Text>
-          </Card>
-        </Layout.Section>
-
-        <Layout.Section>
-          <Card title="Invoice exists check" sectioned>
-            <Text as="p" variant="bodyMd">
-              <strong>GET</strong> /api/invoices/exists
-            </Text>
-            <br />
-            <Text as="p" variant="bodySm" color="subdued">
-              Same auth headers. Body: shopify_customer_id + invoice_number
-            </Text>
-            <Text as="p" variant="bodySm" color="subdued">
-              Returns exists: true/false
-            </Text>
-          </Card>
-        </Layout.Section>
-
-        <Layout.Section oneHalf>
-          <Card title="Get outstanding" sectioned>
-            <Text as="p" variant="bodyMd">
-              <strong>GET</strong> /api/outstanding
-            </Text>
-            <br />
-            <Text as="p" variant="bodySm" color="subdued">
-              Body/query: shopify_customer_id
-            </Text>
-          </Card>
-        </Layout.Section>
-
-        <Layout.Section oneHalf>
-          <Card title="Health" sectioned>
-            <Text as="p" variant="bodyMd">
-              <strong>GET</strong> /api/health
-            </Text>
-            <Text as="p" variant="bodyMd">
-              <strong>GET</strong> /api/health/db
-            </Text>
-            <br />
-            <Text as="p" variant="bodySm" color="subdued">
-              No auth required
-            </Text>
-          </Card>
-        </Layout.Section>
-
-        <Layout.Section>
-          <Card title="Notes" sectioned>
-            <List>
-              <List.Item>
-                Printed money values are never recalculated — only values
-                supplied by the ERP are shown.
-              </List.Item>
-              <List.Item>
-                Multiple invoices can belong to one order; each revision is
-                stored, customers see the highest revision.
-              </List.Item>
-              <List.Item>
-                Configure DATABASE_URL, INVOICE_INGEST_SECRET, and
-                INVOICE_SHOP_DOMAIN on the host environment.
-              </List.Item>
-            </List>
-          </Card>
-        </Layout.Section>
-      </Layout>
-    </Page>
-  );
+            {status && <Button url={status.customer_accounts_settings_url} external>Open customer account settings</Button>}
+            <Text as="p" color="subdued">If Invoices is missing from Apps, confirm the extension is released on the same Shopify app installed on this store. No theme or Liquid changes are needed.</Text>
+          </TextContainer>
+        </Card>
+      </Layout.Section>
+      <Layout.Section>
+        <Card title="Connection and saved tokens" sectioned>
+          <TextContainer>
+            {loading && <Spinner accessibilityLabel="Checking setup" size="small" />}
+            {error && <Banner status="critical">{error}</Banner>}
+            {status && <>
+              <Stack><Badge status="success">Database connected</Badge><Badge status={status.access_token_saved ? "success" : "warning"}>{status.access_token_saved ? "OAuth token saved" : "Open app again to authorize"}</Badge></Stack>
+              <Text as="p">Store: {status.shop}</Text>
+              <Text as="p">Storage: {status.session_storage}. Saved sessions: {status.sessions_saved}. Stored invoices: {status.invoices}.</Text>
+              <Text as="p">App URL: {status.app_url}</Text>
+              {!status.invoice_shop_matches && <Banner status="warning">INVOICE_SHOP_DOMAIN differs from this store. Update it in .env, or send the correct X-Shopify-Shop-Domain with ERP requests.</Banner>}
+              {!status.ingest_secret_configured && <Banner status="warning">Set INVOICE_INGEST_SECRET in .env before connecting your ERP.</Banner>}
+              <Text as="p" color="subdued">OAuth access tokens are saved automatically on the server in PostgreSQL. Customer session tokens are short lived and verified on each request. Secrets are never shown here.</Text>
+            </>}
+            <Button onClick={check} loading={loading}>Refresh status</Button>
+          </TextContainer>
+        </Card>
+      </Layout.Section>
+      <Layout.Section oneHalf>
+        <Card title="Configuration" sectioned>
+          <TextContainer>
+            <Text as="p">Set DATABASE_URL, INVOICE_SHOP_DOMAIN, INVOICE_INGEST_SECRET, and company details in .env. Restart after changing server settings.</Text>
+            <Text as="p">The public app URL and client ID default to shopify.app.toml. Set SHOPIFY_APP_URL to override the URL. Shopify CLI supplies its tunnel URL and credentials during development.</Text>
+            <Text as="p">For production, set SHOPIFY_API_SECRET in the hosting environment and release the extension again after changing its backend URL.</Text>
+            <Text as="p">The extension connects through the store's app proxy automatically. Password-protected development stores use the generated backend URL as a fallback. No URL is required in the account editor.</Text>
+          </TextContainer>
+        </Card>
+      </Layout.Section>
+      <Layout.Section oneHalf>
+        <Card title="ERP connection" sectioned>
+          <TextContainer>
+            <Text as="p">POST /api/invoices/ingest</Text>
+            <Text as="p">POST /api/outstanding/ingest</Text>
+            <Text as="p">Headers: X-Invoice-Secret and X-Shopify-Shop-Domain. Invoice records must include the customer's Shopify ID.</Text>
+            <Text as="p">Existing invoice APIs remain available. Use npm run check:setup to check storage without exposing tokens.</Text>
+          </TextContainer>
+        </Card>
+      </Layout.Section>
+    </Layout>
+  </Page>;
 }

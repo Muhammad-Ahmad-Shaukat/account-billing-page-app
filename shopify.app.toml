@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "fca944bc8886be44f6e1a61cbd25aed6"
-name = "account-billing"
-application_url = "https://account-billing.onrender.com"
+client_id = "d589a4edb908eb643e54eaa9c8a8b210"
+name = "account-invoice"
+application_url = "https://favor-minutes-means-admit.trycloudflare.com"
 embedded = true
 
 [access_scopes]
@@ -14,12 +14,12 @@ api_version = "2026-10"
 
 [auth]
 redirect_urls = [
-  "https://account-billing.onrender.com/api/auth",
-  "https://account-billing.onrender.com/api/auth/callback"
+  "https://favor-minutes-means-admit.trycloudflare.com/api/auth",
+  "https://favor-minutes-means-admit.trycloudflare.com/api/auth/callback"
 ]
 
 [app_proxy]
-url = "https://account-billing.onrender.com/api/proxy"
+url = "https://favor-minutes-means-admit.trycloudflare.com/api/proxy"
 subpath = "account-billing"
 prefix = "apps"
 
